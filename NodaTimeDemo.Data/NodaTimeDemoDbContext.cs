@@ -33,7 +33,7 @@ public class NodaTimeDemoDbContext : DbContext
             entity.Property(e => e.Notes)
                 .HasMaxLength(500);
 
-            // Configure NodaTime LocalDateTime properties
+            // === OLD APPROACH (LocalDateTime) ===
             entity.Property(e => e.OriginalLocalDateTime)
                 .HasConversion(
                     v => v.ToDateTimeUnspecified(),
@@ -43,6 +43,26 @@ public class NodaTimeDemoDbContext : DbContext
                 .HasConversion(
                     v => v.ToDateTimeUnspecified(),
                     v => LocalDateTime.FromDateTime(v));
+
+            // === NEW APPROACH (Instant) ===
+            // Store NodaTime Instant as UTC DateTime in database
+            entity.Property(e => e.OriginalInstant)
+                .HasConversion(
+                    v => v.HasValue ? v.Value.ToDateTimeUtc() : (DateTime?)null,
+                    v => v.HasValue ? Instant.FromDateTimeUtc(v.Value) : (Instant?)null);
+                    
+            entity.Property(e => e.ConvertedInstant)
+                .HasConversion(
+                    v => v.HasValue ? v.Value.ToDateTimeUtc() : (DateTime?)null,
+                    v => v.HasValue ? Instant.FromDateTimeUtc(v.Value) : (Instant?)null);
+                    
+            // Alternative UTC storage (for comparison)
+            entity.Property(e => e.OriginalUtcDateTime)
+                .HasColumnType("datetime2");
+                
+            // Migration flag
+            entity.Property(e => e.UsesNodaTimeInstant)
+                .HasDefaultValue(false);
         });
     }
 } 

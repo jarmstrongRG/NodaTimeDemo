@@ -43,9 +43,13 @@ public class TimezoneConversionService
             // Convert to the target timezone
             var targetZonedDateTime = sourceZonedDateTime.WithZone(targetZone);
             
-            // Create conversion record
+            // === NEW APPROACH: Get the precise Instant ===
+            var instant = sourceZonedDateTime.ToInstant();
+            
+            // Create conversion record with BOTH old and new approaches
             var record = new TimezoneConversionRecord
             {
+                // === OLD APPROACH (Keep for compatibility) ===
                 OriginalTimeZone = fromTimeZone,
                 TargetTimeZone = toTimeZone,
                 OriginalDateTime = dateTime,
@@ -53,8 +57,24 @@ public class TimezoneConversionService
                 OriginalLocalDateTime = localDateTime,
                 ConvertedLocalDateTime = targetZonedDateTime.LocalDateTime,
                 CreatedAt = DateTime.UtcNow,
-                Notes = notes
+                Notes = notes,
+                
+                // === NEW APPROACH (NodaTime Instant) ===
+                OriginalInstant = instant,
+                ConvertedInstant = instant, // Same moment in time!
+                OriginalUtcDateTime = instant.ToDateTimeUtc(),
+                UsesNodaTimeInstant = true,
             };
+
+            // Add notes about the approach being used
+            if (string.IsNullOrEmpty(notes))
+            {
+                record.Notes = "Dual approach: Old DateTime + New NodaTime Instant";
+            }
+            else
+            {
+                record.Notes = $"{notes} | Dual approach: Old DateTime + New NodaTime Instant";
+            }
 
             _context.TimezoneConversions.Add(record);
             await _context.SaveChangesAsync();
@@ -68,7 +88,10 @@ public class TimezoneConversionService
                 TargetTimeZone = toTimeZone,
                 OriginalZonedDateTime = sourceZonedDateTime,
                 TargetZonedDateTime = targetZonedDateTime,
-                ConversionId = record.Id
+                ConversionId = record.Id,
+                
+                // NEW: Include Instant for validation
+                OriginalInstant = instant
             };
         }
         catch (Exception ex)
@@ -200,6 +223,7 @@ public class TimezoneConversionResult
     public ZonedDateTime? OriginalZonedDateTime { get; set; }
     public ZonedDateTime? TargetZonedDateTime { get; set; }
     public int ConversionId { get; set; }
+    public Instant? OriginalInstant { get; set; }
 }
 
 public class TimezoneInfo

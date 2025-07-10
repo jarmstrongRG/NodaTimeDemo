@@ -14,6 +14,7 @@ public class TimezoneConversionRecord
     [Required]
     public string TargetTimeZone { get; set; } = string.Empty;
     
+    // === OLD APPROACH (Keep during migration) ===
     [Required]
     public DateTime OriginalDateTime { get; set; }
     
@@ -30,4 +31,17 @@ public class TimezoneConversionRecord
     
     // Store the converted result as local date time
     public LocalDateTime ConvertedLocalDateTime { get; set; }
+    
+    // === NEW APPROACH (NodaTime Instant) ===
+    // The precise moment in time - this is the "golden" timestamp
+    public Instant? OriginalInstant { get; set; }
+    
+    // For validation: should equal OriginalInstant since it's the same moment
+    public Instant? ConvertedInstant { get; set; }
+    
+    // Alternative: Store as UTC and convert on display
+    public DateTime? OriginalUtcDateTime { get; set; }
+    
+    // Flag to indicate which approach was used for this record
+    public bool UsesNodaTimeInstant { get; set; } = false;
 } 
