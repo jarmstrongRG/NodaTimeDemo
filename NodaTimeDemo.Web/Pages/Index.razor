@@ -1,0 +1,88 @@
+@page "/"
+
+<PageTitle>NodaTime Demo</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4">Welcome to NodaTime Demo</h1>
+            <p class="lead">This application demonstrates how to use NodaTime for timezone conversions in a full-stack .NET application.</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-clock"></i>
+                        Timezone Converter
+                    </h5>
+                    <p class="card-text">
+                        Convert times between different timezones using NodaTime's powerful timezone handling capabilities.
+                        Enter a time in Santiago timezone and convert it to any timezone of your choice.
+                    </p>
+                    <a href="/timezone-converter" class="btn btn-primary">Start Converting</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-list-nested"></i>
+                        Conversion History
+                    </h5>
+                    <p class="card-text">
+                        View all your previous timezone conversions stored in the SQL database.
+                        Track patterns and review your conversion history.
+                    </p>
+                    <a href="/conversion-history" class="btn btn-secondary">View History</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-heading">About NodaTime</h4>
+                <p>
+                    NodaTime is a powerful .NET library for handling dates and times with proper timezone support.
+                    It provides a comprehensive API for working with:
+                </p>
+                <ul>
+                    <li>Timezone conversions</li>
+                    <li>Local date/time without timezone</li>
+                    <li>Zoned date/time with timezone</li>
+                    <li>Periods and durations</li>
+                    <li>Calendar systems</li>
+                </ul>
+                <hr>
+                <p class="mb-0">
+                    This demo shows how to integrate NodaTime in a full-stack application with ASP.NET Core Web API,
+                    Entity Framework Core, and Blazor Server.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bi {
+        margin-right: 8px;
+    }
+    
+    .card {
+        height: 100%;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+    }
+</style> 

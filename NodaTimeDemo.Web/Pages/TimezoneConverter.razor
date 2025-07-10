@@ -1,0 +1,252 @@
+@page "/timezone-converter"
+@using NodaTimeDemo.Web.Services
+@inject TimezoneApiService ApiService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Timezone Converter</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4">Timezone Converter</h1>
+            <p class="lead">Convert times between different timezones using NodaTime</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock"></i>
+                        Convert Time
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@conversionRequest" OnValidSubmit="@ConvertTime">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="dateTime" class="form-label">Date & Time</label>
+                                    <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="conversionRequest.DateTime" class="form-control" id="dateTime" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Notes (Optional)</label>
+                                    <InputText @bind-Value="conversionRequest.Notes" class="form-control" id="notes" placeholder="Add any notes about this conversion" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fromTimezone" class="form-label">From Timezone</label>
+                                    <select @bind="conversionRequest.FromTimeZone" class="form-select" id="fromTimezone">
+                                        <option value="">Select timezone...</option>
+                                        @foreach (var timezone in availableTimezones)
+                                        {
+                                            <option value="@timezone.Id">@timezone.DisplayName</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="toTimezone" class="form-label">To Timezone</label>
+                                    <select @bind="conversionRequest.ToTimeZone" class="form-select" id="toTimezone">
+                                        <option value="">Select timezone...</option>
+                                        @foreach (var timezone in availableTimezones)
+                                        {
+                                            <option value="@timezone.Id">@timezone.DisplayName</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary" disabled="@isConverting">
+                                    @if (isConverting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span>Converting...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-arrow-left-right me-2"></i>
+                                        <span>Convert Time</span>
+                                    }
+                                </button>
+                                <button type="button" class="btn btn-secondary ms-2" @onclick="SetSantiagoExample">
+                                    <i class="bi bi-geo-alt me-2"></i>
+                                    Set Santiago Example
+                                </button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Popular Timezones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        @foreach (var timezone in popularTimezones)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <small>@GetTimezoneDisplayName(timezone)</small>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => SetFromTimezone(timezone)">
+                                    Use as Source
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (conversionResult != null)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                @if (conversionResult.Success)
+                {
+                    <div class="alert alert-success" role="alert">
+                        <h4 class="alert-heading">
+                            <i class="bi bi-check-circle"></i>
+                            Conversion Successful!
+                        </h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Original Time:</strong><br />
+                                <span class="fs-5">@conversionResult.OriginalDateTime.ToString("yyyy-MM-dd HH:mm:ss")</span><br />
+                                <small class="text-muted">@conversionResult.OriginalTimeZone</small>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Converted Time:</strong><br />
+                                <span class="fs-5">@conversionResult.ConvertedDateTime.ToString("yyyy-MM-dd HH:mm:ss")</span><br />
+                                <small class="text-muted">@conversionResult.TargetTimeZone</small>
+                            </div>
+                        </div>
+                        <hr>
+                        <p class="mb-0">
+                            <small class="text-muted">Conversion ID: @conversionResult.ConversionId</small>
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Conversion Failed
+                        </h4>
+                        <p class="mb-0">@conversionResult.ErrorMessage</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private TimezoneConversionRequest conversionRequest = new()
+    {
+        DateTime = DateTime.Now,
+        FromTimeZone = "America/Santiago",
+        ToTimeZone = "UTC"
+    };
+
+    private TimezoneConversionResult? conversionResult;
+    private List<TimezoneInfo> availableTimezones = new();
+    private bool isConverting = false;
+
+    private readonly List<string> popularTimezones = new()
+    {
+        "America/Santiago",
+        "UTC",
+        "America/New_York",
+        "America/Los_Angeles",
+        "Europe/London",
+        "Europe/Paris",
+        "Asia/Tokyo",
+        "Asia/Shanghai",
+        "Australia/Sydney"
+    };
+
+    private string GetTimezoneDisplayName(string timezoneId)
+    {
+        var timezone = availableTimezones.FirstOrDefault(t => t.Id == timezoneId);
+        return timezone?.DisplayName ?? timezoneId;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTimezones();
+    }
+
+    private async Task LoadTimezones()
+    {
+        try
+        {
+            var timezones = await ApiService.GetAvailableTimezonesAsync();
+            availableTimezones = timezones.ToList();
+        }
+        catch (Exception ex)
+        {
+            // Handle error - could show a toast notification
+            Console.WriteLine($"Error loading timezones: {ex.Message}");
+        }
+    }
+
+    private async Task ConvertTime()
+    {
+        if (string.IsNullOrEmpty(conversionRequest.FromTimeZone) || string.IsNullOrEmpty(conversionRequest.ToTimeZone))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please select both source and target timezones.");
+            return;
+        }
+
+        isConverting = true;
+        try
+        {
+            conversionResult = await ApiService.ConvertTimeAsync(conversionRequest);
+        }
+        catch (Exception ex)
+        {
+            conversionResult = new TimezoneConversionResult
+            {
+                Success = false,
+                ErrorMessage = ex.Message
+            };
+        }
+        finally
+        {
+            isConverting = false;
+        }
+    }
+
+    private void SetSantiagoExample()
+    {
+        conversionRequest.DateTime = DateTime.Now;
+        conversionRequest.FromTimeZone = "America/Santiago";
+        conversionRequest.ToTimeZone = "UTC";
+        conversionRequest.Notes = "Santiago to UTC conversion example";
+    }
+
+    private void SetFromTimezone(string timezone)
+    {
+        conversionRequest.FromTimeZone = timezone;
+    }
+} 

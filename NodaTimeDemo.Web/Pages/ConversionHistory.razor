@@ -1,0 +1,224 @@
+@page "/conversion-history"
+@using NodaTimeDemo.Web.Services
+@inject TimezoneApiService ApiService
+
+<PageTitle>Conversion History</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4">Conversion History</h1>
+            <p class="lead">View all your previous timezone conversions</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-nested"></i>
+                        Conversion Records
+                    </h5>
+                    <button class="btn btn-outline-primary" @onclick="RefreshHistory">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading conversion history...</p>
+                        </div>
+                    }
+                    else if (conversions.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Original Time</th>
+                                        <th>From Timezone</th>
+                                        <th>Converted Time</th>
+                                        <th>To Timezone</th>
+                                        <th>Created At</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var conversion in conversions)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-primary">@conversion.Id</span>
+                                            </td>
+                                            <td>
+                                                <strong>@conversion.OriginalDateTime.ToString("yyyy-MM-dd")</strong><br />
+                                                <small class="text-muted">@conversion.OriginalDateTime.ToString("HH:mm:ss")</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info text-dark">@conversion.OriginalTimeZone</span>
+                                            </td>
+                                            <td>
+                                                <strong>@conversion.ConvertedDateTime.ToString("yyyy-MM-dd")</strong><br />
+                                                <small class="text-muted">@conversion.ConvertedDateTime.ToString("HH:mm:ss")</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">@conversion.TargetTimeZone</span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">@conversion.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(conversion.Notes))
+                                                {
+                                                    <span class="text-muted">@conversion.Notes</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted fst-italic">No notes</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center">
+                            <div class="alert alert-info" role="alert">
+                                <h4 class="alert-heading">
+                                    <i class="bi bi-info-circle"></i>
+                                    No conversions found
+                                </h4>
+                                <p>You haven't performed any timezone conversions yet.</p>
+                                <hr>
+                                <p class="mb-0">
+                                    <a href="/timezone-converter" class="btn btn-primary">
+                                        <i class="bi bi-clock"></i>
+                                        Start Converting
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (conversions.Any())
+    {
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-bar-chart"></i>
+                            Conversion Statistics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="text-center">
+                                    <h4 class="text-primary">@conversions.Count()</h4>
+                                    <p class="text-muted">Total Conversions</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="text-center">
+                                    <h4 class="text-success">@GetUniqueTimezones()</h4>
+                                    <p class="text-muted">Unique Timezones</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up"></i>
+                            Most Used Timezones
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var timezone in GetTopTimezones().Take(3))
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>@timezone.Key</span>
+                                <span class="badge bg-secondary">@timezone.Value</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<TimezoneConversionRecord> conversions = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConversions();
+    }
+
+    private async Task LoadConversions()
+    {
+        isLoading = true;
+        try
+        {
+            var history = await ApiService.GetConversionHistoryAsync();
+            conversions = history.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading conversion history: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshHistory()
+    {
+        await LoadConversions();
+    }
+
+    private int GetUniqueTimezones()
+    {
+        var timezones = new HashSet<string>();
+        foreach (var conversion in conversions)
+        {
+            timezones.Add(conversion.OriginalTimeZone);
+            timezones.Add(conversion.TargetTimeZone);
+        }
+        return timezones.Count;
+    }
+
+    private IEnumerable<KeyValuePair<string, int>> GetTopTimezones()
+    {
+        var timezoneCount = new Dictionary<string, int>();
+        
+        foreach (var conversion in conversions)
+        {
+            timezoneCount[conversion.OriginalTimeZone] = timezoneCount.GetValueOrDefault(conversion.OriginalTimeZone, 0) + 1;
+            timezoneCount[conversion.TargetTimeZone] = timezoneCount.GetValueOrDefault(conversion.TargetTimeZone, 0) + 1;
+        }
+
+        return timezoneCount.OrderByDescending(x => x.Value);
+    }
+} 
