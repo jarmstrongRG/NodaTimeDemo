@@ -6,10 +6,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-// Add HttpClient for API calls
+// Update the API URL to match the new HTTPS port
 builder.Services.AddHttpClient<TimezoneApiService>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:49405/"); // API URL
+    client.BaseAddress = new Uri("https://localhost:5003/"); // Updated API URL
 });
 
 var app = builder.Build();
